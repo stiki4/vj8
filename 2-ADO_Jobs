@@ -1,0 +1,363 @@
+Logic
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class Jobs
+    {
+        public Int16 Id { get; set; }    
+
+        public string Description { get; set; }
+
+        public Byte MinLvl { get; set; }
+
+        public Byte MaxLvl { get; set; }
+
+        public Jobs()
+        {
+
+        }
+    }
+}
+
+using DatabaseAccess;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class JobsRepository
+    {
+        public List<Jobs> GetJobs()
+        {
+            string sql = "SELECT * FROM jobs";
+
+            List<Jobs> jobs = GetJobsData(sql);
+            return jobs;
+        }
+
+        private List<Jobs> GetJobsData (string sql)
+        {
+            DataBase.Instance.Connect();
+
+            IDataReader dataReader = DataBase.Instance.GetDataReader(sql);
+
+            List<Jobs> jobs = new List<Jobs>();
+
+            while (dataReader.Read())
+            {
+                Int16 id = (Int16)dataReader["job_id"];
+                string description = dataReader["job_desc"].ToString();
+                Byte minLvl = (Byte)dataReader["min_lvl"];
+                Byte maxLvl = (Byte)dataReader["max_lvl"];
+
+                Jobs job = new Jobs()
+                {
+                    Id = id,
+                    Description = description,
+                    MinLvl = minLvl,
+                    MaxLvl = maxLvl
+                };
+                jobs.Add(job);
+
+            }
+            dataReader.Close();
+            DataBase.Instance.Disconnect();
+
+            return jobs;
+        }
+
+        public int Insert (Jobs job)
+        {
+            DataBase.Instance.Connect();
+
+            string sql = $"INSERT INTO jobs (job_desc, min_lvl, max_lvl) " +
+                $"VALUES ('{job.Description}', '{job.MinLvl}', '{job.MaxLvl}')";
+
+            int i = DataBase.Instance.ExecuteCommand(sql);
+            DataBase.Instance.Disconnect();
+            return i;
+        }
+
+        public int Delete (Jobs job)
+        {
+            DataBase.Instance.Connect();
+            string sql = $"DELETE FROM Jobs WHERE  = '{job.Id}'";
+            int i = DataBase.Instance.ExecuteCommand(sql);
+
+            DataBase.Instance.Disconnect();
+
+            return i;
+        }
+    }
+}
+
+using DatabaseAccess;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class EmployeeRepository
+    {
+        public List<Employees> GetEmployees()
+        {
+            string sql = "SELECT * FROM employee";
+
+            List<Employees> employees = GetEmployeesData(sql);
+            return employees;
+        }
+
+        private List<Employees> GetEmployeesData(string sql)
+        {
+            DataBase.Instance.Connect();
+
+            IDataReader dataReader = DataBase.Instance.GetDataReader(sql);
+
+            List<Employees> employees = new List<Employees>();
+
+            while (dataReader.Read())
+            {
+                string id = dataReader["emp_id"].ToString();
+                string fName = dataReader["fname"].ToString();
+                string lName = dataReader["lname"].ToString();
+                Int16 jobId = (Int16)dataReader["job_id"];
+                string publisherId = dataReader["pub_id"].ToString();
+                DateTime hireDate = DateTime.Parse(dataReader["hire_date"].ToString());
+
+                Employees employee = new Employees()
+                {
+                    Id = id,
+                    FName = fName,
+                    LName = lName,
+                    JobId = jobId,
+                    PublisherId = publisherId,
+                    HireDate = hireDate,
+                };
+                employees.Add(employee);
+
+            }
+            dataReader.Close();
+            DataBase.Instance.Disconnect();
+
+            return employees;
+        }
+
+        public int Delete(Employees employee)
+        {
+            DataBase.Instance.Connect();
+            string sql = $"DELETE FROM employee WHERE job_id = '{employee.JobId}'";
+            int i = DataBase.Instance.ExecuteCommand(sql);
+
+            DataBase.Instance.Disconnect();
+
+            return i;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class Employees
+    {
+        public string Id { get; set; }
+
+        public string FName { get; set; }
+
+        public string LName { get; set; }
+
+        public Int16 JobId { get; set; }
+
+        public string PublisherId { get; set; }
+
+        public DateTime HireDate { get; set; }
+
+        public Employees()
+        {
+
+        }
+    }
+}
+
+DatabaseAccess
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DatabaseAccess
+{
+    public class DataBase
+    {
+        private string connectionString = @"Data Source = 31.147.204.119\PISERVER, 1433; Initial Catalog = pubs; User = LabUser21; Password = Lab2021";
+        private SqlConnection Connection;
+        private static DataBase instance;
+
+        public void Connect()
+        {
+            Connection = new SqlConnection(connectionString);
+            Connection.Open();
+        }
+
+        public void Disconnect()
+        {
+            if (Connection.State != System.Data.ConnectionState.Closed)
+            {
+                Connection.Close();
+            }
+        }
+
+        public static DataBase Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new DataBase();
+                }
+                return instance;
+            }
+        }
+
+        public IDataReader GetDataReader (string sqlUpit)
+        {
+            SqlCommand sqlCommand = new SqlCommand(sqlUpit, Connection);
+            return sqlCommand.ExecuteReader();
+        }
+
+        public object GetValue (string sqlUpit)
+        {
+            SqlCommand command = new SqlCommand(sqlUpit, Connection);
+            return command.ExecuteScalar();
+        }
+
+        public int ExecuteCommand (string sqlUpit)
+        {
+            SqlCommand command = new SqlCommand(sqlUpit, Connection);
+            return command.ExecuteNonQuery();
+        }
+    }
+}
+
+ADO_Jobs
+
+using Logic;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace ADO_Jobs
+{
+    public partial class FrmJobsEmployees : Form
+    {
+        JobsRepository jobsRepository = new JobsRepository();
+
+        EmployeeRepository employeeRepository = new EmployeeRepository();
+
+
+        public FrmJobsEmployees()
+        {
+            InitializeComponent();
+        }
+
+        private void FrmJobsEmployees_Load(object sender, EventArgs e)
+        {
+            List<Jobs> alljobs = jobsRepository.GetJobs();
+            dgvJobs.DataSource = alljobs;
+        }
+
+        private void dgvJobs_SelectionChanged(object sender, EventArgs e)
+        {
+            Jobs odabraniJobs = dgvJobs.CurrentRow.DataBoundItem as Jobs;
+
+            List<Employees> allemployees = employeeRepository.GetEmployees();
+
+            List<Employees> zaposleni = new List<Employees>();
+            
+            foreach (Employees item in allemployees)
+            {
+                if (item.JobId == odabraniJobs.Id)
+                {
+                    zaposleni.Add(item);
+                }
+            }  
+            
+            dgvEmployees.DataSource = zaposleni;
+            
+    
+        }
+
+        private void Osvjezi()
+        {
+            List<Jobs> alljobs = jobsRepository.GetJobs();
+            dgvJobs.DataSource = alljobs;
+
+        }
+    
+
+        private void btnAddJob_Click(object sender, EventArgs e)
+        {
+            Jobs jobs = new Jobs()
+            {
+                Description = txtDescription.Text,
+                MinLvl = Byte.Parse(txtMinLevel.Text),
+                MaxLvl = Byte.Parse(txtMaxLevel.Text),
+            };
+
+            jobsRepository.Insert(jobs);
+            Osvjezi();
+
+        }
+        private Jobs Provjera()
+        {
+            if (dgvJobs.CurrentRow != null)
+            {
+                return dgvJobs.CurrentRow.DataBoundItem as Jobs;
+            }
+            else
+            {
+                return null;
+            }
+        }
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Jobs odabrani = Provjera();
+            jobsRepository.Delete(odabrani);
+
+
+            Osvjezi();
+
+
+        }
+
+    }
+}

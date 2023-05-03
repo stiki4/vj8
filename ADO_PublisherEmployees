@@ -1,0 +1,356 @@
+Logic
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class Publishers
+    {
+        public string Id { get; set; }
+
+        public string PubName { get; set; }
+
+        public string City { get; set; }
+
+        public string State { get; set; }
+
+        public string Country { get; set; }
+
+        public Publishers()
+        {
+
+        }
+    }
+}
+
+using DataAccess;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class PublishersRepository
+    {
+        public List<Publishers> GetPublishers()
+        {
+            string sql = $"SELECT * FROM publishers";
+            List<Publishers> publishers = GetPublishersData(sql);
+
+            return publishers;
+
+        }
+
+        private List<Publishers> GetPublishersData(string sql)
+        {
+            Database.Instance.Connect();
+
+            IDataReader dataReader = Database.Instance.GetDataReader(sql);
+
+            List<Publishers> publishers = new List<Publishers>();
+
+            while (dataReader.Read())
+            {
+                string id = dataReader["pub_id"].ToString();
+                string pubName = dataReader["pub_name"].ToString();
+                string city = dataReader["city"].ToString();
+                string state = dataReader["state"].ToString();
+                string country = dataReader["country"].ToString();
+
+                Publishers publisher = new Publishers()
+                {
+                    Id = id,
+                    PubName = pubName,
+                    City = city,
+                    State = state,
+                    Country = country
+
+                };
+                publishers.Add(publisher);
+
+            }
+            dataReader.Close();
+            Database.Instance.Disconnect();
+
+            return publishers;
+        }
+
+        public int Insert(Publishers publishers)
+        {
+            Database.Instance.Connect();
+
+            string sql = $"INSERT INTO publishers (pub_id, pub_name, city, state, country) VALUES ('{publishers.Id}', '{publishers.PubName}', '{publishers.City}', '{publishers.State}', '{publishers.Country}')";
+
+            int i = Database.Instance.ExceuteCommand(sql);
+
+            Database.Instance.Disconnect();
+
+            return i;
+
+
+        }
+
+
+        public int Delete(Publishers publishers)
+        {
+            Database.Instance.Connect();
+            string sql = $"DELETE FROM publishers WHERE pub_id = {publishers.Id}";
+            int i = Database.Instance.ExceuteCommand(sql);
+            Database.Instance.Disconnect();
+            return i;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class Employee
+    {
+        public string Id { get; set; }
+
+        public string FName { get; set; }
+
+        public string LName { get; set; }
+
+        public Int16 JobId { get; set; }
+
+        public string PubId { get; set; }
+
+        public DateTime HireDate { get; set; }
+
+        public Employee()
+        {
+
+        }
+    }
+}
+
+using DataAccess;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class EmployeesRepository
+    {
+        public List<Employee> GetEmployees()
+        {
+            string sql = $"SELECT * FROM employee";
+            List<Employee> employees = GetEmployeesData(sql);
+
+            return employees;
+        }
+
+        private List<Employee> GetEmployeesData(string sql)
+        {
+            Database.Instance.Connect();
+
+            IDataReader dataReader = Database.Instance.GetDataReader(sql);
+
+            List<Employee> employees = new List<Employee>();
+
+            while (dataReader.Read())
+            {
+                string id = dataReader["emp_id"].ToString();
+                string fName = dataReader["fname"].ToString();
+                string lname = dataReader["lname"].ToString();
+                Int16 jobId = (Int16)dataReader["job_id"];
+                string pubId = dataReader["pub_id"].ToString();
+                DateTime hireDate = DateTime.Parse(dataReader["hire_date"].ToString());
+
+                Employee employee = new Employee()
+                {
+                    Id = id,
+                    FName = fName,
+                    LName = lname,
+                    JobId = jobId,
+                    PubId = pubId,
+                    HireDate = hireDate,
+                };
+                employees.Add(employee);
+            }
+            dataReader.Close();
+            Database.Instance.Disconnect();
+
+            return employees;
+        }
+
+    }
+}
+
+DatatAccess
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DataAccess
+{
+    public class Database
+    {
+        private static Database instance;
+
+        private string connectionString = @"Data Source = 31.147.204.119\PISERVER,1433; Initial Catalog = pubs; User=LabUser21; Password=Lab2021";
+
+        private SqlConnection Connection { get; set; }
+
+        public void Connect()
+        {
+            Connection = new SqlConnection(connectionString);
+            Connection.Open();
+        }
+
+        public void Disconnect()
+        {
+            if (Connection.State != ConnectionState.Closed)
+            {
+                Connection.Close();
+            }
+        }
+
+        public static Database Instance
+        {
+            get
+            {
+                if(instance == null)
+                {
+                    instance = new Database();
+                }
+                return instance;
+            }
+        }
+
+        public IDataReader GetDataReader(string sqlUpit)
+        {
+            SqlCommand command = new SqlCommand(sqlUpit, Connection);
+            return command.ExecuteReader();
+        }
+
+        public object GetValue(string sqlUpit)
+        {
+            SqlCommand command = new SqlCommand(sqlUpit, Connection);
+            return command.ExecuteScalar();
+        }
+
+        public int ExceuteCommand (string sqlUpit)
+        {
+            SqlCommand command = new SqlCommand(sqlUpit, Connection);
+            return command.ExecuteNonQuery();
+        }
+
+
+
+      
+
+
+
+
+    }
+}
+
+ADO_PublisherEmployees
+
+using Logic;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace ADO_PublishersEmployees
+{
+    public partial class FrmPublishersEmployees : Form
+    {
+        PublishersRepository publishersRepository = new PublishersRepository();
+
+        EmployeesRepository employeesRepository = new EmployeesRepository();
+
+        public FrmPublishersEmployees()
+        {
+            InitializeComponent();
+        }
+
+        private void FrmPublishersEmployees_Load(object sender, EventArgs e)
+        {
+            dgvPublishers.DataSource = null;
+            dgvPublishers.DataSource = publishersRepository.GetPublishers();
+        }
+
+        private void Osvjezi()
+        {
+            
+            List<Employee> employees = employeesRepository.GetEmployees();
+
+            Publishers odabrani = dgvPublishers.CurrentRow.DataBoundItem as Publishers;
+
+            List<Employee> novaLista = new List<Employee>();
+
+            foreach (Employee item in employees)
+            {
+                if (item.PubId == odabrani.Id)
+                {
+                    novaLista.Add(item);
+                }
+            }
+
+            dgvEmployees.DataSource = novaLista;
+            
+
+        }
+
+        private void dgvPublishers_SelectionChanged(object sender, EventArgs e)
+        {
+            Osvjezi();
+        }
+
+        private void btnAddPublisher_Click(object sender, EventArgs e)
+        {
+            Publishers publisher = new Publishers
+            {
+                Id = txtPubId.Text,
+                PubName = txtPubName.Text,
+                City = txtCity.Text,
+                State = txtState.Text,
+                Country = txtCountry.Text,
+            };
+
+            publishersRepository.Insert(publisher);
+            dgvPublishers.DataSource = publishersRepository.GetPublishers();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            
+
+            Publishers odabrani = dgvPublishers.CurrentRow.DataBoundItem as Publishers;
+            publishersRepository.Delete(odabrani);
+
+        }
+    }
+}
+

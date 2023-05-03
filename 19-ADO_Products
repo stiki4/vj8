@@ -1,0 +1,246 @@
+DatabaseAccess
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Database_Access
+{
+    public class Database
+    {
+        private static Database instance;
+
+        private string connectionString = @"Data Source = 31.147.204.119\PISERVER,1433; Initial Catalog = Labs; User = LabUser; Password = lab2020";
+
+        public SqlConnection Connection { get; set; }
+
+        public void Connect()
+        {
+            Connection = new SqlConnection(connectionString);
+            Connection.Open();
+        }
+
+        public void Disconnect()
+        {
+            if (Connection.State != ConnectionState.Closed)
+            {
+                Connection.Close();
+            }
+        }
+
+        public static Database Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new Database();
+                }
+                return instance;
+            }
+        }
+
+        public IDataReader GetDataReader(string sqlUpit)
+        {
+            SqlCommand sqlCommand = new SqlCommand(sqlUpit, Connection);
+            return sqlCommand.ExecuteReader();
+        }
+
+        public object GetValue (string sqlUpit)
+        {
+            SqlCommand sqlCommand = new SqlCommand (sqlUpit, Connection);
+            return sqlCommand.ExecuteScalar();
+        }
+
+        public int ExecuteCommand (string sqlUpit)
+        {
+            SqlCommand sqlCommand = new SqlCommand(sqlUpit, Connection);
+            return sqlCommand.ExecuteNonQuery();
+        }
+    }
+
+}
+
+Products
+
+using Database_Access;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Products
+{
+    public class ProductsRepository
+    {
+        public List<Products> GetProducts()
+        {
+            string sql = "SELECT * FROM Products";
+            List<Products> products = GetProductsData(sql);
+            return products;
+        }
+
+        private List<Products> GetProductsData(string sql)
+        {
+            Database.Instance.Connect();
+
+            IDataReader dataReader = Database.Instance.GetDataReader(sql);
+
+            List<Products> products = new List<Products>();
+
+            while (dataReader.Read())
+            {
+                int id = (int)dataReader["Id"];
+                string name = dataReader["Name"].ToString();
+                int inStock = (int)dataReader["InStock"];
+                int minStock = (int)dataReader["MinStock"];
+                float unitPrice = float.Parse(dataReader["UnitPrice"].ToString());
+                string username = dataReader["Username"].ToString();
+
+                Products product = new Products()
+                {
+                    Id = id,
+                    Name = name,
+                    InStock = inStock,
+                    MinStock = minStock,
+                    UnitPrice = unitPrice,
+                    Username = username,
+                    StockValue = inStock * unitPrice
+                };
+
+                products.Add(product);
+            }
+            dataReader.Close();
+
+            Database.Instance.Disconnect();
+
+            return products;
+        }
+
+        public int Insert (Products noviProduct)
+        {
+            Database.Instance.Connect();
+
+            string sql = "INSERT INTO Products(Name, InStock, MinStock, UnitPrice, Username)"
+                + $"VALUES('{noviProduct.Name}', '{noviProduct.InStock}','{noviProduct.MinStock}','{noviProduct.UnitPrice}','{noviProduct.Username}')";
+            
+            int i = Database.Instance.ExecuteCommand(sql);
+
+            Database.Instance.Disconnect();
+
+            return i;
+        }
+
+        public int Delete (Products odabraniProduct)
+        {
+            Database.Instance.Connect();
+
+            string sql = $"DELETE FROM Products WHERE Id = {odabraniProduct.Id}";
+
+            int i = Database.Instance.ExecuteCommand(sql);
+
+            Database.Instance.Disconnect();
+
+            return i;
+        }
+
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Products
+{
+    public partial class FrmProducts : Form
+    {
+        ProductsRepository productsRepository = new ProductsRepository();
+        public FrmProducts()
+        {
+            InitializeComponent();
+        }
+
+        private void btnInsert_Click(object sender, EventArgs e)
+        {
+              Products noviProduct = new Products()
+              {
+                  Name = txtName.Text,
+                  InStock = int.Parse(txtInStock.Text),
+                  MinStock = int.Parse(txtMinStock.Text),
+                  UnitPrice = int.Parse(txtUnitPrice.Text),
+                  Username = txtUsername.Text,
+
+
+        };
+            productsRepository.Insert(noviProduct);
+            dgvProducts.DataSource = null;
+            dgvProducts.DataSource = productsRepository.GetProducts();
+
+        }
+
+        private void FrmProducts_Load(object sender, EventArgs e)
+        {
+            dgvProducts.DataSource = null;
+            dgvProducts.DataSource = productsRepository.GetProducts();
+        }
+
+
+        private void btnDelete_Click(object sender, EventArgs e)
+        {
+            Products product = dgvProducts.CurrentRow.DataBoundItem as Products;
+            productsRepository.Delete(product);
+            dgvProducts.DataSource = null;
+            dgvProducts.DataSource = productsRepository.GetProducts();
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Products
+{
+   public class Products
+    {
+
+        public int Id { get; set; }
+
+        public string Name { get; set; }    
+
+        public int InStock { get; set; }
+
+        public int MinStock { get; set; }
+
+        public float UnitPrice { get; set; }
+
+        public double StockValue { get; set; }
+
+        public string Username { get; set; }
+
+        public Products()
+        {
+
+            StockValue = InStock * UnitPrice;
+
+        }
+
+    }
+}
+
+

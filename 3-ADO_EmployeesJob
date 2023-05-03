@@ -1,0 +1,340 @@
+Logic
+
+using DataAcccess;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class EmployeeRepository
+    {
+        public List<Employee> GetEmployees()
+        {
+            string sql = $"SELECT * FROM employee";
+            List<Employee> employees = GetEmployeesData(sql);
+            return employees;
+        }
+
+        public List<Employee> GetEmployeesData (string sql)
+        {
+            Database.Instance.Connect();
+
+            IDataReader dataReader = Database.Instance.GetDataReader(sql);
+
+            List<Employee> employees = new List<Employee>();
+
+            while (dataReader.Read())
+            {
+                string id = dataReader["emp_id"].ToString();
+                string fName = dataReader["fname"].ToString();
+                string lName = dataReader["lname"].ToString();
+                Int16 jobId = (Int16)dataReader["job_id"];
+                string pubId = dataReader["pub_id"].ToString();
+                DateTime hireDate = DateTime.Parse(dataReader["hire_date"].ToString());
+
+                Employee employee = new Employee()
+                {
+                    Id = id,
+                    FName = fName,
+                    LName = lName,
+                    JobId = jobId,
+                    PubId = pubId,
+                };
+                employees.Add(employee);
+            }
+            dataReader.Close();
+            Database.Instance.Disconnect();
+
+            return employees;
+        }
+
+        public int Update(Employee employee, Jobs job)
+        {
+            Database.Instance.Connect();
+
+            string sql = $"UPDATE employee SET job_id = '{job.Id}' WHERE emp_id = '{employee.Id}'";
+
+            int i = Database.Instance.ExceuteCommand(sql);
+            Database.Instance.Disconnect();
+            return i;
+        }
+    }
+}
+
+using DataAcccess;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public  class JobRepository
+    {
+        public List<Jobs> GetJobs()
+        {
+            string sql = "SELECT * FROM jobs";
+
+            List<Jobs> jobs = GetJobsData(sql);
+            return jobs;
+        }
+
+        private List<Jobs> GetJobsData(string sql)
+        {
+            Database.Instance.Connect();
+
+            IDataReader dataReader = Database.Instance.GetDataReader(sql);
+
+            List<Jobs> jobs = new List<Jobs>();
+
+            while (dataReader.Read())
+            {
+                Int16 id = (Int16)dataReader["job_id"];
+                string description = dataReader["job_desc"].ToString();
+                Byte minLvl = (Byte)dataReader["min_lvl"];
+                Byte maxLvl = (Byte)dataReader["max_lvl"];
+
+                Jobs job = new Jobs()
+                {
+                    Id = id,
+                    Description = description,
+                    MinLvl = minLvl,
+                    MaxLvl = maxLvl
+                };
+                jobs.Add(job);
+
+            }
+            dataReader.Close();
+            Database.Instance.Disconnect();
+
+            return jobs;
+        }
+
+
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class Jobs
+    {
+        public Int16 Id { get; set; }
+
+        public string Description { get; set; }
+
+        public Byte MinLvl { get; set; }
+
+        public Byte MaxLvl { get; set; }
+
+        public Jobs()
+        {
+                
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Logic
+{
+    public class Employee
+    {
+        public string Id { get; set; }
+
+        public string FName { get; set; }
+
+        public string LName { get; set; }
+
+        public Int16 JobId { get; set; }
+
+        public string PubId { get; set; }
+
+        public DateTime HireDate { get; set; }
+
+        public Employee()
+        {
+
+        }
+    }
+}
+
+DatabaseAccess
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DataAcccess
+{
+    public class Database
+    {
+        private static Database instance;
+
+        private string connectionString = @"Data Source = 31.147.204.119\PISERVER,1433; Initial Catalog = pubs; User=LabUser21; Password=Lab2021";
+
+        private SqlConnection Connection { get; set; }
+
+        public void Connect()
+        {
+            Connection = new SqlConnection(connectionString);
+            Connection.Open();
+        }
+
+        public void Disconnect()
+        {
+            if (Connection.State != ConnectionState.Closed)
+            {
+                Connection.Close();
+            }
+        }
+
+        public static Database Instance
+        {
+            get
+            {
+                if(instance == null)
+                {
+                    instance = new Database();
+                }
+                return instance;
+            }
+        }
+
+        public IDataReader GetDataReader(string sqlUpit)
+        {
+            SqlCommand command = new SqlCommand(sqlUpit, Connection);
+            return command.ExecuteReader();
+        }
+
+        public object GetValue (string sqlUpit)
+        {
+            SqlCommand command = new SqlCommand(sqlUpit, Connection);
+            return command.ExecuteScalar();
+        }
+
+        public int ExceuteCommand (string sqlUpit)
+        {
+            SqlCommand command = new SqlCommand(sqlUpit, Connection);
+            return command.ExecuteNonQuery();
+        }
+    }
+}
+
+ADO_EmployeesJob
+
+using Logic;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace ADO_EmployeesJob
+{
+    public partial class FrmJobs : Form
+    {
+        JobRepository jobRepository = new JobRepository();
+        EmployeeRepository employeeRepository = new EmployeeRepository();
+
+        private Employee Odabrani;
+
+        public FrmJobs(Employee odabrani)
+        {
+            InitializeComponent();
+            Odabrani = odabrani;
+        }
+
+        private void FrmJobs_Load(object sender, EventArgs e)
+        {
+            dgvJobs.DataSource = null;
+            dgvJobs.DataSource = jobRepository.GetJobs();
+        }
+
+        private void btnCancel_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void btnSave_Click(object sender, EventArgs e)
+        {
+            Jobs odabrani2 = dgvJobs.CurrentRow.DataBoundItem as Jobs;
+
+            employeeRepository.Update(Odabrani, odabrani2);
+
+            this.Close();
+
+            
+        }
+    }
+}
+
+using Logic;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace ADO_EmployeesJob
+{
+    public partial class FrmEmployees : Form
+    {
+        EmployeeRepository employeeRepository = new EmployeeRepository();
+
+        public FrmEmployees()
+        {
+            InitializeComponent();
+
+        }
+
+        private void Osvjezi()
+        {
+            dgvEmployees.DataSource = null;
+            dgvEmployees.DataSource = employeeRepository.GetEmployees();  
+
+        }
+        private void FrmEmployees_Load(object sender, EventArgs e)
+        {
+            Osvjezi();
+        }
+
+        private void btnChangeJob_Click(object sender, EventArgs e)
+        {
+            Employee odabrani = dgvEmployees.CurrentRow.DataBoundItem as Employee;
+
+            FrmJobs frmJobs = new FrmJobs(odabrani);
+            
+            frmJobs.ShowDialog();
+
+            Osvjezi();
+        }
+    }
+}
